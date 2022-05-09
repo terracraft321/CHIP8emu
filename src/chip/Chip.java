@@ -30,7 +30,7 @@ public class Chip {
 		
 		keys = new byte[16];
 		
-		display = new byte[64*32];
+		display = new byte[64 * 32];
 		
 	}
 	

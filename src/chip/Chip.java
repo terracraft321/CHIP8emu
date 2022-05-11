@@ -94,7 +94,29 @@ public class Chip {
 		//decode opcode
 		switch(opcode & 0xF000) {
 		
+		case 0x000: 
+			switch(opcode & 0x00FF ) {
+			case 0x00E0:
+				System.err.println("Unsupported Opcode!");
+				System.exit(0);
+				break;
+				
+			case 0x00EE:
+				stackPointer--;
+				pc = (char)stack[stackPointer] + 2;
+				
+				break;
+				
+				default:
+				System.err.println("Unsupported Opcode!");
+				System.exit(0);
+					break;
+					
+			}
+		
 		case 0x1000: //1NNN: Jumps to address NNN
+			int nnn = opcode & 0x0FFF;
+			pc = (char)nnn;
 			break;
 			
 		case 0x2000: //2NNN: Calls subroutine at NNN
@@ -103,8 +125,15 @@ public class Chip {
 			pc = (char)(opcode & 0x0FFF);
 			break;
 			
-		case 0x3000: //3XNN: Skips the next instruction if VX equals NN
-			break;
+		case 0x3000: {//3XNN: Skips the next instruction if VX equals NN
+			int x = (opcode & 0xF00) >> 8;
+		    int nn = (opcode & 0x00FF); 
+		    if(V[x] == nn) {
+		    pc += 2;
+		} else {
+		    pc += 2;
+		}    
+			break; }		
 			
 		case 0x6000: //6XNN: Set VX to NN
 			int x = (opcode & 0x0F00) >> 8;
@@ -166,11 +195,49 @@ public class Chip {
 			needRedraw = true;
 			break;
 		
+		case 0xF000:
+			
+			switch(opcode & 0x00FF) {
+			
+			case 0x0029: { // Sets I to the location of the sprite for the charachter VX (Fontset)
+				int x2 = (opcode & 0x0F00) >> 8;
+				int character = V[x];
+				I = (char)(0x050 + (character * 5)); 
+				pc += 2;
+				break; 
+			
+			}
+			
+			case 0x033: { //FX33
+				int x = V[opcode & 0x0F00];
+				int value = V[x];
+				int hundreds = (x - (x % 100)) / 100;
+				value -= hundreds * 100;
+				int tens = (x - (x % 100)) / 10;
+				value -= tens * 10;
+				int ones = (x - (x % 100)) / 1;
+				memory[I] = (char)hundreds;
+				memory[I + 1] = (char)tens;
+				memory[I + 2] = (char)x;
+				pc += 2;
+				break;
+			}
+			case 0x065: // FX65 fills V0 to VX with values from I 
+				int x3 = (opcode & 0x0F00) >> 8;
+				for(int i = 0; i < x; i++) {
+					V[i] = memory[I+ i];
+					pc += 2;
+					break; 
+				}
+				
+			}
 			default:
 				System.err.println("Unsupported Opcode!");
 				System.exit(0);
 		}
+		break; 
 	}
+	
 	
 	/**
 	 * Returns the display data

@@ -73,6 +73,8 @@ public class ChipFrame extends JFrame {
 	
 	@Override
 	public void keyReleased(KeyEvent e) {
+		if(keyIdToKey[e.getKeyCode()] != -1)
+			keyBuffer[keyIdToKey[e.getKeyCode()]] = 0;
 	}
 	
 	

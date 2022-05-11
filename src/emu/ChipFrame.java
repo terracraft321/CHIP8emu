@@ -24,9 +24,10 @@ public class ChipFrame extends JFrame implements KeyListener {
 		setLayout(new BorderLayout());
 		add(panel, BorderLayout.CENTER);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
-		setTitle("Chip 8 Emulator");
+		setTitle("Terracraft's Chip-8 Emulator");
 		pack();
 		setVisible(true);
+		addKeyListener(this);
 		
 		keyIdToKey = new int[256];
 		keyBuffer = new int[16];

@@ -24,7 +24,7 @@ public class Main extends Thread {
 				chip8.removeDrawFlag();
 			}
 			try {
-				Thread.sleep(16);
+				Thread.sleep(8);
 			} catch (InterruptedException e) {
 				//Unthrown exception
 			}

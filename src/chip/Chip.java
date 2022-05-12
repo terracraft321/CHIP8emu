@@ -95,8 +95,11 @@ public class Chip {
 		case 0x0000: //Multi-case
 			switch(opcode & 0x00FF) {
 			case 0x00E0: //00E0: Clear Screen
-				System.err.println("Unsupported Opcode!");
-				System.exit(0);
+				for(int i = 0; i < display.length; i++) {
+					display[i] = 0;
+			}
+				pc += 2;
+				needRedraw = true;
 				break;
 				
 			case 0x00EE: //00EE: Returns from subroutine
@@ -222,6 +225,16 @@ public class Chip {
 				break;
 			}
 			
+			case 0x0006: { // //8XY: Shift VX right by one, VF  is set to the least signifigant bit of VX ( no need for VY)
+				int x = (opcode & 0x0F00) >> 8;
+				V[0xF] = (char)(V[x] & 0x1);
+				V[x] = (char)(V[x] << 1);
+				pc += 2;
+				System.out.println("Shift V[ " + x + "] << 1 and VF to LSB of VX");
+				break;
+				
+			}
+			
 				default:
 					System.err.println("Unsupported Opcode!");
 					System.exit(0);
@@ -260,6 +273,10 @@ public class Chip {
 					if(pixel != 0) {
 						int totalX = x + _x;
 						int totalY = y + _y;
+						
+						totalX = totalX % 64;
+						totalY = totalY % 32;
+						
 						int index = (totalY * 64) + totalX;
 						
 						if(display[index] == 1)
@@ -285,7 +302,7 @@ public class Chip {
 				} else {
 					pc += 2;
 				}
-				System.out.println("Skipping next instruction if V[" + (int)V[x] + "] is pressed");
+				System.out.println("Skipping next instruction if V[" + x + "] = " + ((int)V[x]) + " is pressed");
 				break;
 			}
 				
@@ -297,7 +314,7 @@ public class Chip {
 				} else {
 					pc += 2;
 				}
-				System.out.println("Skipping next instruction if V[" + (int)V[x] + "] is NOT pressed");
+				System.out.println("Skipping next instruction if V[" + ((int)V[x]) + "] is NOT pressed");
 				break;
 			}
 				
@@ -336,6 +353,15 @@ public class Chip {
 				break;
 			}
 			
+			case 0x001E: { //FX1E: VX -> I
+				int x = (opcode & 0x0F00) >> 8;
+				I = (char)(I + V[x]);
+				System.out.println("Adding V[" + x + "] = " + (int)V[x] + " to I");
+				pc += 2;
+				break;
+				
+			}
+			
 			case 0x0029: { //FX29: Sets I to the location of the sprite for the character VX (Fontset)
 				int x = (opcode & 0x0F00) >> 8;
 				int character = V[x];
@@ -362,7 +388,7 @@ public class Chip {
 			
 			case 0x0065: { //FX65 Filss V0 to VX with values from I
 				int x = (opcode & 0x0F00) >> 8;
-				for(int i = 0; i < x; i++) {
+				for(int i = 0; i <= x; i++) {
 					V[i] = memory[I + i];
 				}
 				System.out.println("Setting V[0] to V[" + x + "] to the values of memory[0x" + Integer.toHexString(I & 0xFFFF).toUpperCase() + "]");
@@ -382,8 +408,11 @@ public class Chip {
 				System.exit(0);
 		}
 		
-		if(sound_timer > 0)
+		if(sound_timer > 1) {
 			sound_timer--;
+		Audio.playSound("./beep.wav");
+	}
+		
 		if(delay_timer > 0)
 			delay_timer--;
 	}

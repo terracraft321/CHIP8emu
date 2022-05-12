@@ -10,7 +10,7 @@ public class Main extends Thread {
 	public Main() {
 		chip8 = new Chip();
 		chip8.init();
-		chip8.loadProgram("./pong2.c8");
+		chip8.loadProgram("./invaders.c8");
 		frame = new ChipFrame(chip8);
 	}
 	

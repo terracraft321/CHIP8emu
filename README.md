@@ -3,7 +3,7 @@
 
 ![](CHIPPONG.gif)
 
-![](TETRISCCHIP.gif)
+![](TETRISCHIP.gif)
 
 
 Chip-8 Emulator written in Java. Written in Eclipse IDE. Opcodes and bitwise are crucial to making this work.

@@ -136,7 +136,7 @@ public class Chip {
 				System.out.println("Skipping next instruction (V[" + x +"] == " + nn + ")");
 			} else {
 				pc += 2;
-				System.out.println("Not skipping next instruction (V[" + x +"] != " + nn + ")");
+				System.out.println("Not skipping next instruction (V[" + x +"] =/= " + nn + ")");
 			}
 			break;
 		}
@@ -153,6 +153,20 @@ public class Chip {
 			}
 			break;
 		}
+		
+		case 0x5000: { //5XY0  Skip if VX = VY
+			int x = (opcode & 0x0F00) >> 8;
+			int y = (opcode & 0x00F00) >> 8;
+			if(V[x] == V[y]) {
+			System.out.println("Skipping next instruction V[" + x + "] == V[" + y + "]"); 
+				pc += 4;
+			} else {
+			System.out.println("Not skipping next instruction V[" + x + "] =/= V[" + y + "]");
+				pc += 2;
+			}
+			break;
+			}
+			
 			
 		case 0x6000: { //6XNN: Set VX to NN
 			int x = (opcode & 0x0F00) >> 8;
@@ -183,12 +197,30 @@ public class Chip {
 				pc += 2;
 				break;
 			}
+			
+			case 0x0001: { //8XY0: Sets VX to the value of VY
+				int x = (opcode & 0x0F00) >> 8;
+				int y = (opcode & 0x00F0) >> 4;
+				System.out.println("Setting V[" + x + "] = V[" + x + "] | V[" + y +"]");
+				V[x] = (char)((V[x] | V[y]) & 0xFF);
+				pc += 2;
+				break;
+			}
 				
 			case 0x0002: { //8XY2: Sets VX to VX AND VY
 				int x = (opcode & 0x0F00) >> 8;
 				int y = (opcode & 0x00F0) >> 4;
 				System.out.println("Set V[" + x + "] to V[" + x + "] = " + (int)V[x] + " & V[" + y + "] = " + (int)V[y] + " = " + (int)(V[x] & V[y]));
 				V[x] = (char)(V[x] & V[y]);
+				pc += 2;
+				break;
+			}
+			
+			case 0x0003: { //8XY0: Sets VX to the value of VY
+				int x = (opcode & 0x0F00) >> 8;
+				int y = (opcode & 0x00F0) >> 4;
+				System.out.println("Setting V[" + x + "] = V[" + x + "] ^ V[" + y +"]");
+				V[x] = (char)((V[x] ^ V[y]) & 0xFF);
 				pc += 2;
 				break;
 			}
@@ -228,11 +260,35 @@ public class Chip {
 			case 0x0006: { // //8XY: Shift VX right by one, VF  is set to the least signifigant bit of VX ( no need for VY)
 				int x = (opcode & 0x0F00) >> 8;
 				V[0xF] = (char)(V[x] & 0x1);
+				V[x] = (char)(V[x] >> 1);
+				pc += 2;
+				System.out.println("Shift V[ " + x + "] >> 1 and VF to LSB of VX");
+				break;
+				
+			}
+			
+			case 0x0007: { //8XY7: Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+				int x = (opcode & 0x0F00) >> 8;
+				int y = (opcode & 0x00F0) >> 4;
+				
+				if(V[x] > V[y])
+					V[0xF] = 0;
+				else
+					V[0xF] = 1;
+				
+				V[x] = (char)((V[y] - V[x]) & 0xFF);
+				System.out.println("V[" + x + "] = V[" + y + "] - V[" + x + "], Applies Borrow if needed");	
+				pc += 2;
+				break;
+			}
+			
+			case 0x000E: { //8XYE: Shifts VX left by one. VF is set to the value of the most significant bit of VX before the shift.
+				int x = (opcode & 0x80) >> 8;
+				V[0xF] = (char)(V[x] & 0x1);
 				V[x] = (char)(V[x] << 1);
 				pc += 2;
 				System.out.println("Shift V[ " + x + "] << 1 and VF to LSB of VX");
 				break;
-				
 			}
 			
 				default:
@@ -243,10 +299,29 @@ public class Chip {
 				
 			break;
 			
+		case 0x9000: { // 9XY0 Skip next instruction if VX doesn't equal VY
+			int x = (opcode & 0x0F00) >> 8;
+			int y = (opcode & 0x00F00) >> 8;
+			if(V[x] != V[y]) {
+			System.out.println("Skipping next instruction V[" + x + "] != V[" + y + "]"); 
+				pc += 4;
+			} else {
+			System.out.println("Not skipping next instruction V[" + x + "] !/= V[" + y + "]");
+				pc += 2;
+			}
+			break;
+			}
+			
 		case 0xA000: //ANNN: Set I to NNN
 			I = (char)(opcode & 0x0FFF);
 			pc += 2;
 			System.out.println("Set I to " + Integer.toHexString(I).toUpperCase());
+			break;
+			
+		case 0xB000: //BNNN: Jumps to the address NNN plus V0
+			int nnn1 =  opcode & 0x0FFF;
+			int extra =  V[0] & 0xFF;
+			pc = (char)(nnn1 + extra);
 			break;
 			
 		case 0xC000: { //CXNN: Set VX to a random number and NN
@@ -338,6 +413,19 @@ public class Chip {
 				break;
 			}
 			
+			case 0x000A: { //FX01 Wait for key press, and store it into VX.
+				int x = (opcode & 0x0F00) >> 8;
+				for(int i = 0; i < keys.length; i++) {
+					if(keys[i] == 1) {
+						V[x] = (char)i;
+						pc += 2;
+						break;
+					}
+				}
+				System.out.println("Awaiting key press to be stored in in V[" + x + "]");
+				break;
+			}
+			
 			case 0x0015: { //FX15: Set delay timer to V[x]
 				int x = (opcode & 0x0F00) >> 8;
 				delay_timer = V[x];
@@ -382,6 +470,16 @@ public class Chip {
 				memory[I + 1] = (char)tens;
 				memory[I + 2] = (char)value;
 				System.out.println("Storing Binary-Coded Decimal V[" + x + "] = " + (int)(V[(opcode & 0x0F00) >> 8]) + " as { " + hundreds+ ", " + tens + ", " + value + "}");
+				pc += 2;
+				break;
+			}
+			
+			case 0x0055: { // FX55 stores V0 to VX in memory starting at address I.
+				int x = (opcode & 0x0F00) >> 8;
+				for(int i = 0; i <= x; i++) {
+					memory[I + i] = V[i];
+				}
+				System.out.println("Setting Memory[" + Integer.toHexString(I & 0xFFFF).toUpperCase() + " + n] = to V[0] to V[x]");
 				pc += 2;
 				break;
 			}
